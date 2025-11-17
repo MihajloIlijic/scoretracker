@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/*
+!build/web/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+test/
+
+# Build artifacts
+*.log
+
