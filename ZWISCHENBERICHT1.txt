@@ -1,0 +1,135 @@
+ZWISCHENBERICHT - Score Tracker Projekt
+========================================
+
+BESCHREIBUNG (Was, Warum, Wie)
+-------------------------------
+
+Was:
+Das Score Tracker Projekt ist eine Webanwendung zur Verwaltung von Spielständen 
+und Turnieren. Die Anwendung besteht aus einem Flutter Web Frontend und einem 
+Go Backend, die über eine REST API kommunizieren. Als Datenbank wird PostgreSQL 
+verwendet, und die gesamte Anwendung wird mit Docker containerisiert.
+
+Warum:
+Ziel ist es, eine moderne, skalierbare Webanwendung zu entwickeln, die es 
+ermöglicht, Spielstände zu verwalten und Turniere zu organisieren. Durch die 
+Verwendung von Flutter Web kann eine konsistente Benutzeroberfläche erstellt 
+werden, während Go als Backend-Sprache für hohe Performance und einfache 
+Wartbarkeit sorgt. Docker ermöglicht eine einfache Deployment- und 
+Entwicklungsumgebung.
+
+Wie:
+Die Anwendung wurde als Microservice-Architektur aufgebaut:
+- Frontend: Flutter Web für die Benutzeroberfläche
+- Backend: Go mit Gin Framework für die REST API
+- Datenbank: PostgreSQL für die Datenspeicherung
+- Containerisierung: Docker Compose für die Orchestrierung aller Services
+
+Die Kommunikation zwischen Frontend und Backend erfolgt über HTTP REST API 
+Endpoints. Das Frontend sendet Requests an das Backend, welches die Daten 
+in der PostgreSQL Datenbank speichert oder abruft.
+
+
+ERLEDIGT
+--------
+
+Backend:
+✓ Go Backend mit Gin Framework implementiert
+✓ PostgreSQL Datenbankverbindung eingerichtet
+✓ REST API Endpoints für Scores (GET, POST, PUT, DELETE)
+✓ Health Check Endpoint implementiert
+✓ CORS Middleware für Frontend-Kommunikation konfiguriert
+✓ Logging Middleware implementiert
+✓ Datenbank-Migrationen mit GORM eingerichtet
+✓ Docker-Container für Backend erstellt
+
+Frontend:
+✓ Flutter Web Projektstruktur aufgebaut
+✓ HTTP Service für API-Kommunikation implementiert
+✓ Basis UI für Score-Anzeige erstellt
+✓ Score hinzufügen Funktionalität implementiert
+✓ Score löschen Funktionalität implementiert
+✓ Liste aktualisieren (Refresh) implementiert
+✓ Error Handling und Loading States implementiert
+✓ Docker-Container für Frontend erstellt
+
+Infrastruktur:
+✓ Docker Compose Konfiguration für alle Services
+✓ Projektstruktur aufgeräumt (nur Web-Plattform)
+✓ .gitignore für Flutter, Go und Docker konfiguriert
+✓ Dokumentation erstellt (README)
+
+Dokumentation und Problemlösung:
+✓ Umfassende Dokumentation in Markdown erstellt
+✓ Troubleshooting-Guide für häufige Probleme dokumentiert -> README.md
+✓ Notizen zu aufgetretenen Problemen und deren Lösungen festgehalten
+✓ Bedienungsanleitung und App-Übersicht erstellt
+
+Während der Entwicklung wurden verschiedene Herausforderungen gemeistert, 
+wie z.B. Docker-Konfiguration, Flutter Web Build-Probleme, CORS-Einstellungen 
+und Datenbankverbindungen. Alle aufgetretenen Probleme wurden systematisch 
+in Markdown-Dateien dokumentiert und gelöst, um zukünftige Referenz und 
+Wartbarkeit zu gewährleisten.
+
+
+OFFEN
+-----
+
+Frontend:
+- Frontend muss noch an die gewünschte Struktur angepasst werden
+- UI/UX Verbesserungen basierend auf Anforderungen
+- Turnier-spezifische Ansichten fehlen noch
+
+Backend:
+- Endpoints müssen erweitert werden, um Turnierstruktur zu unterstützen
+- Turnier-Modelle und -Logik müssen implementiert werden
+- Erweiterte API-Endpoints für Turnierverwaltung
+
+Features:
+- Turnier-Erstellung und -Verwaltung
+- Spieler-Verwaltung innerhalb von Turnieren
+- Turnier-Bracket/Struktur
+- Statistiken und Auswertungen
+
+
+NÄCHSTE SCHRITTE
+----------------
+
+Bis Ende nächster Woche:
+
+1. Frontend an gewünschte Struktur anpassen
+   - UI-Komponenten entsprechend den Anforderungen umgestalten
+   - Navigation und Routing implementieren
+   - Turnier-spezifische Views erstellen
+   - Responsive Design optimieren
+
+2. Backend Endpoints für Turnierstruktur erweitern
+   - Turnier-Modelle in Go implementieren
+   - CRUD Endpoints für Turniere erstellen
+   - Beziehung zwischen Turnieren und Scores modellieren
+   - API-Endpoints für Turnierverwaltung implementieren
+   - Datenbank-Schema für Turniere erweitern
+
+3. Integration Frontend-Backend
+   - Frontend an neue Turnier-Endpoints anbinden
+   - Turnier-Erstellung im Frontend implementieren
+   - Turnier-Übersicht und Detailansicht erstellen
+
+4. Testing
+   - API-Endpoints testen
+   - Frontend-Backend Integration testen
+   - End-to-End Tests durchführen
+
+
+ZUSAMMENFASSUNG
+---------------
+
+Das Projekt hat jetzt eine solide Basis mit funktionierendem Backend, Datenbank-
+verbindung und grundlegendem Frontend. Die nächste Phase konzentriert sich 
+auf die Erweiterung um Turnierfunktionalität und die Anpassung des Frontends 
+an die gewünschte Struktur. Bis Ende nächster Woche sollen sowohl Frontend 
+als auch Backend für die Turnierverwaltung vorbereitet sein.
+
+Während der Entwicklung wurde großer Wert auf Dokumentation gelegt. Alle 
+aufgetretenen Probleme wurden systematisch in Markdown-Datei dokumentiert.
+

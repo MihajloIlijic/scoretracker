@@ -1,180 +1,239 @@
-# Score Tracker
+# Troubleshooting Guide
 
-Eine moderne Webanwendung zum Verwalten von Spielständen mit Flutter Web Frontend und Go Backend.
+## Docker daemon läuft nicht
 
-## 🚀 Technologie-Stack
+### Fehler:
+```
+Cannot connect to the Docker daemon at unix:///Users/.../.docker/run/docker.sock. 
+Is the docker daemon running?
+```
 
-- **Frontend**: Flutter Web
-- **Backend**: Go (Golang) mit Gin Framework
-- **Datenbank**: PostgreSQL
-- **Containerisierung**: Docker & Docker Compose
+### Lösung:
 
-## 📋 Voraussetzungen
+**macOS:**
+1. Öffnen Sie Docker Desktop (im Applications Ordner oder über Spotlight)
+2. Warten Sie, bis Docker Desktop vollständig gestartet ist (Icon in der Menüleiste sollte grün sein)
+3. Prüfen Sie den Status: `docker info` sollte funktionieren
 
-- Docker & Docker Compose
-- Flutter SDK (für lokale Entwicklung)
-- Go 1.21+ (für lokale Entwicklung)
+**Linux:**
+```bash
+sudo systemctl start docker
+sudo systemctl enable docker  # Für automatischen Start
+```
 
-## 🏃 Schnellstart mit Docker
+**Windows:**
+1. Öffnen Sie Docker Desktop
+2. Warten Sie, bis es vollständig gestartet ist
 
-1. **Klonen Sie das Repository** (falls noch nicht geschehen)
+### Prüfen ob Docker läuft:
+```bash
+docker info
+```
 
-2. **Environment-Variablen konfigurieren** (optional)
+Sollte eine Ausgabe ohne Fehler geben.
+
+---
+
+## Port bereits belegt
+
+### Fehler:
+```
+Error response from daemon: Ports are not available: exposing port TCP ... address already in use
+```
+
+### Lösung:
+
+**Option 1: Ports in docker-compose.yml ändern**
+```yaml
+ports:
+  - "3001:80"    # Frontend auf Port 3001
+  - "8081:8080"  # Backend auf Port 8081
+```
+
+**Option 2: Ports in .env Datei ändern**
+```bash
+FRONTEND_PORT=3001
+API_PORT=8081
+```
+
+**Option 3: Prozess beenden, der den Port verwendet**
+```bash
+# Port finden
+lsof -i :3000
+lsof -i :8080
+
+# Prozess beenden (PID aus vorherigem Befehl)
+kill -9 <PID>
+```
+
+---
+
+## Datenbank-Verbindungsfehler
+
+### Fehler:
+```
+failed to connect to database: connection refused
+```
+
+### Lösung:
+
+1. **Prüfen ob PostgreSQL läuft:**
    ```bash
-   cp .env.example .env
-   # Bearbeiten Sie .env nach Bedarf
+   docker-compose ps postgres
    ```
 
-3. **Alle Services starten**
+2. **Logs prüfen:**
    ```bash
-   docker-compose up --build
+   docker-compose logs postgres
    ```
 
-4. **Anwendung öffnen**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8080
-   - API Health Check: http://localhost:8080/api/health
+3. **Datenbank neu starten:**
+   ```bash
+   docker-compose restart postgres
+   ```
 
-## 🛠️ Lokale Entwicklung
+4. **Warten bis Datenbank bereit ist:**
+   Docker Compose wartet automatisch auf Health Check, aber manchmal dauert es länger.
 
-### Backend (Go)
+---
+
+## Backend startet nicht
+
+### Fehler:
+```
+Error: failed to connect to database
+```
+
+### Lösung:
+
+1. **Prüfen ob Backend auf Datenbank wartet:**
+   ```bash
+   docker-compose logs backend
+   ```
+
+2. **Backend neu starten:**
+   ```bash
+   docker-compose restart backend
+   ```
+
+3. **Dependencies prüfen:**
+   Backend sollte `depends_on: postgres` mit `condition: service_healthy` haben.
+
+---
+
+## Frontend baut nicht / Flutter Image Fehler
+
+### Fehler:
+```
+failed to resolve source metadata for docker.io/flutter/flutter:latest: 
+pull access denied, repository does not exist
+```
+
+### Lösung:
+
+**Option 1: Alternative Flutter Image (bereits implementiert)**
+Das Dockerfile verwendet jetzt `cirrusci/flutter:latest`. Falls das auch nicht funktioniert:
+
+1. **Dockerfile.frontend prüfen** - sollte `cirrusci/flutter:latest` verwenden
+2. **Image manuell pullen:**
+   ```bash
+   docker pull cirrusci/flutter:latest
+   ```
+
+**Option 2: Frontend lokal bauen (Alternative)**
+Wenn das Flutter Docker Image weiterhin Probleme macht:
+
+1. **Frontend lokal bauen:**
+   ```bash
+   flutter pub get
+   flutter build web --release
+   ```
+
+2. **Dockerfile.frontend.simple verwenden:**
+   ```bash
+   # In docker-compose.yml ändern:
+   dockerfile: Dockerfile.frontend.simple
+   ```
+
+3. **Neu bauen:**
+   ```bash
+   docker-compose build frontend
+   ```
+
+### Weitere Tipps:
+
+1. **Logs prüfen:**
+   ```bash
+   docker-compose logs frontend
+   ```
+
+2. **Docker Cache leeren:**
+   ```bash
+   docker-compose build --no-cache frontend
+   ```
+
+3. **Flutter Version prüfen:**
+   Das Dockerfile verwendet `cirrusci/flutter:latest`. Falls es Probleme gibt, können Sie eine spezifische Version verwenden.
+
+---
+
+## Alle Container löschen und neu starten
+
+### Vollständiger Reset:
 
 ```bash
-cd backend
+# Alle Container stoppen und entfernen
+docker-compose down -v
 
-# Dependencies installieren
-go mod download
+# Volumes löschen (ACHTUNG: Daten gehen verloren!)
+docker volume prune
 
-# Umgebungsvariablen setzen (oder .env Datei verwenden)
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_USER=scoretracker
-export DB_PASSWORD=scoretracker_pass
-export DB_NAME=scoretracker_db
-export API_PORT=8080
-
-# Server starten
-go run cmd/server/main.go
+# Neu bauen und starten
+docker-compose up --build
 ```
 
-### Frontend (Flutter Web)
+---
+
+## CORS-Fehler im Browser
+
+### Fehler:
+```
+Access to XMLHttpRequest has been blocked by CORS policy
+```
+
+### Lösung:
+
+1. **Backend CORS-Konfiguration prüfen** in `backend/cmd/server/main.go`
+2. **Frontend URL hinzufügen** zu `AllowOrigins`
+3. **Backend neu starten:**
+   ```bash
+   docker-compose restart backend
+   ```
+
+---
+
+## Häufige Befehle
 
 ```bash
-# Dependencies installieren
-flutter pub get
+# Status prüfen
+docker-compose ps
 
-# Development Server starten
-flutter run -d chrome
+# Logs anzeigen
+docker-compose logs -f
+
+# Einzelnen Service neu starten
+docker-compose restart <service-name>
+
+# Alle Services neu starten
+docker-compose restart
+
+# Container-Status prüfen
+docker ps -a
+
+# Images anzeigen
+docker images
+
+# Docker System aufräumen
+docker system prune -a
 ```
 
-### Datenbank (PostgreSQL)
-
-```bash
-# Nur Datenbank mit Docker starten
-docker-compose up postgres
-```
-
-## 📡 API Endpoints
-
-- `GET /api/health` - Health Check
-- `GET /api/scores` - Alle Scores abrufen
-- `POST /api/scores` - Neuen Score erstellen
-- `GET /api/scores/:id` - Score abrufen
-- `PUT /api/scores/:id` - Score aktualisieren
-- `DELETE /api/scores/:id` - Score löschen
-
-### Beispiel: Score erstellen
-
-```bash
-curl -X POST http://localhost:8080/api/scores \
-  -H "Content-Type: application/json" \
-  -d '{
-    "player": "Max Mustermann",
-    "game": "Chess",
-    "points": 1500
-  }'
-```
-
-## 🐳 Docker Services
-
-- **postgres**: PostgreSQL Datenbank (Port 5432)
-- **backend**: Go API Server (Port 8080)
-- **frontend**: Flutter Web App (Port 3000)
-
-## 📁 Projektstruktur
-
-```
-scoretracker/
-├── lib/                    # Flutter Web Frontend
-│   ├── main.dart
-│   └── services/
-│       └── api_service.dart
-├── web/                    # Web-Konfiguration
-├── backend/                # Go Backend
-│   ├── cmd/
-│   │   └── server/
-│   │       └── main.go
-│   ├── internal/
-│   │   ├── handlers/       # HTTP Handler
-│   │   ├── models/         # Datenmodelle
-│   │   ├── database/       # DB-Logik
-│   │   └── middleware/     # Middleware
-│   └── Dockerfile
-├── docker-compose.yml      # Docker Orchestrierung
-├── Dockerfile.frontend     # Flutter Web Build
-└── pubspec.yaml            # Flutter Dependencies
-```
-
-## 🔧 Konfiguration
-
-### Environment Variables
-
-Erstellen Sie eine `.env` Datei im Root-Verzeichnis:
-
-```bash
-# Backend
-API_PORT=8080
-
-# Database
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=scoretracker
-DB_PASSWORD=scoretracker_pass
-DB_NAME=scoretracker_db
-
-# Frontend
-FRONTEND_PORT=3000
-API_BASE_URL=http://localhost:8080/api
-```
-
-## 🧪 Testing
-
-```bash
-# Backend Tests
-cd backend
-go test ./...
-
-# Frontend Tests
-flutter test
-```
-
-## 📝 Entwicklung
-
-### Neue Features hinzufügen
-
-1. **Backend**: Neue Handler in `backend/internal/handlers/` erstellen
-2. **Models**: Neue Models in `backend/internal/models/` definieren
-3. **Frontend**: Neue Services in `lib/services/` erstellen
-4. **UI**: Widgets in `lib/` implementieren
-
-### Datenbank-Migrationen
-
-Die Datenbank-Migrationen werden automatisch beim Start des Backends ausgeführt (GORM AutoMigrate).
-
-## 📄 License
-
-Dieses Projekt ist für Bildungszwecke erstellt.
-
-## 🤝 Beitrag
-
-Beiträge sind willkommen! Bitte erstellen Sie einen Pull Request.
