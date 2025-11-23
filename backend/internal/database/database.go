@@ -33,7 +33,7 @@ func Connect() (*gorm.DB, error) {
 }
 
 func Migrate(db *gorm.DB) error {
-	if err := db.AutoMigrate(&models.Score{}); err != nil {
+	if err := db.AutoMigrate(&models.Score{}, &models.Match{}); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 

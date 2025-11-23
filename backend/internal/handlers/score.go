@@ -120,3 +120,16 @@ func (h *ScoreHandler) DeleteScore(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Score deleted successfully"})
 }
 
+func (h *ScoreHandler) GetPlayers(c *gin.Context) {
+	var players []string
+
+	if err := h.DB.Model(&models.Score{}).
+		Distinct("player").
+		Pluck("player", &players).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch players"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"players": players})
+}
+
