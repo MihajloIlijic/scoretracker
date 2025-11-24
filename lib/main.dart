@@ -273,45 +273,6 @@ class _ScoreTrackerHomeState extends State<ScoreTrackerHome> with SingleTickerPr
     }
   }
 
-  Future<void> _deleteMatch(Match match) async {
-    if (match.id == null) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Match'),
-        content: Text('Are you sure you want to delete the match between ${match.player1} and ${match.player2}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await ApiService.deleteMatch(match.id!);
-        _loadMatches();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Match deleted successfully')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting match: $e')),
-          );
-        }
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -709,110 +670,151 @@ class _ScoreTrackerHomeState extends State<ScoreTrackerHome> with SingleTickerPr
               itemBuilder: (context, index) {
           final match = _matches[index];
           final isPlayer1Winner = match.winner == match.player1;
+          final isDraw = match.winner == null && match.status == MatchStatus.finished;
+          
           return Card(
             margin: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 8,
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        match.game,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteMatch(match),
-                        tooltip: 'Delete',
-                      ),
-                    ],
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MatchDetailPage(match: match),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  match.player1,
-                                  style: TextStyle(
-                                    fontWeight: isPlayer1Winner
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    fontSize: 16,
-                                  ),
+                ).then((_) => _loadMatches());
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                match.game,
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                if (isPlayer1Winner) ...[
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Score: ${match.player1Score}',
-                              style: TextStyle(
-                                color: isPlayer1Winner ? Colors.green : Colors.grey,
-                                fontWeight: isPlayer1Winner ? FontWeight.bold : FontWeight.normal,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Text(
-                        'vs',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (!isPlayer1Winner) ...[
-                                  const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
-                                  const SizedBox(width: 8),
-                                ],
-                                Text(
-                                  match.player2,
-                                  style: TextStyle(
-                                    fontWeight: !isPlayer1Winner
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    fontSize: 16,
-                                  ),
+                              const SizedBox(height: 4),
+                              Chip(
+                                label: Text(
+                                  match.status == MatchStatus.pending
+                                      ? 'Pending'
+                                      : match.status == MatchStatus.started
+                                          ? 'Live'
+                                          : 'Finished',
+                                  style: const TextStyle(fontSize: 11),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Score: ${match.player2Score}',
-                              style: TextStyle(
-                                color: !isPlayer1Winner ? Colors.green : Colors.grey,
-                                fontWeight: !isPlayer1Winner ? FontWeight.bold : FontWeight.normal,
+                                backgroundColor: match.status == MatchStatus.pending
+                                    ? Colors.grey.withOpacity(0.2)
+                                    : match.status == MatchStatus.started
+                                        ? Colors.green.withOpacity(0.2)
+                                        : Colors.blue.withOpacity(0.2),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    match.player1,
+                                    style: TextStyle(
+                                      fontWeight: isPlayer1Winner
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  if (isPlayer1Winner && !isDraw) ...[
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Score: ${match.player1Score}',
+                                style: TextStyle(
+                                  color: isPlayer1Winner && !isDraw ? Colors.green : Colors.grey,
+                                  fontWeight: isPlayer1Winner && !isDraw ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Text(
+                          'vs',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (!isPlayer1Winner && !isDraw && match.winner != null) ...[
+                                    const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  Text(
+                                    match.player2,
+                                    style: TextStyle(
+                                      fontWeight: !isPlayer1Winner && !isDraw && match.winner != null
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Score: ${match.player2Score}',
+                                style: TextStyle(
+                                  color: !isPlayer1Winner && !isDraw && match.winner != null ? Colors.green : Colors.grey,
+                                  fontWeight: !isPlayer1Winner && !isDraw && match.winner != null ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (isDraw && match.status == MatchStatus.finished)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          'Draw',
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.orange,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -1213,10 +1215,14 @@ class _AddMatchDialogState extends State<AddMatchDialog> {
                                     DropdownButtonFormField<String>(
                             value: _selectedWinner,
                             decoration: const InputDecoration(
-                              labelText: 'Winner',
+                              labelText: 'Winner (Optional)',
                               border: OutlineInputBorder(),
                             ),
                             items: [
+                              const DropdownMenuItem(
+                                value: null,
+                                child: Text('None (Draw)'),
+                              ),
                               if (_selectedPlayer1 != null)
                                 DropdownMenuItem(
                                   value: _selectedPlayer1,
@@ -1233,12 +1239,6 @@ class _AddMatchDialogState extends State<AddMatchDialog> {
                                 _selectedWinner = value;
                               });
                             },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please select a winner';
-                              }
-                              return null;
-                                    },
                                   ),
                                       ],
                                     ),
@@ -1262,7 +1262,8 @@ class _AddMatchDialogState extends State<AddMatchDialog> {
                       player1: _selectedPlayer1!,
                       player2: _selectedPlayer2!,
                       game: _gameController.text,
-                      winner: _selectedWinner!,
+                      status: MatchStatus.pending,
+                      winner: _selectedWinner,
                       player1Score: int.parse(_player1ScoreController.text),
                       player2Score: int.parse(_player2ScoreController.text),
                     );
@@ -1367,15 +1368,27 @@ class ChampionshipDetailPage extends StatefulWidget {
 class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
   List<Player> _assignedPlayers = [];
   List<Player> _allPlayers = [];
+  List<Map<String, dynamic>> _standings = [];
+  List<Match> _matches = [];
+  Championship? _championship;
   bool _isLoadingPlayers = true;
   bool _isLoadingAllPlayers = false;
+  bool _isLoadingStandings = false;
+  bool _isLoadingMatches = false;
+  bool _isFinalizing = false;
+  bool _isGeneratingMatches = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _championship = widget.championship;
     _loadPlayers();
     _loadAllPlayers();
+    _loadMatches();
+    if (_championship!.status == ChampionshipStatus.finalized) {
+      _loadStandings();
+    }
   }
 
   Future<void> _loadPlayers() async {
@@ -1398,6 +1411,22 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
     }
   }
 
+  Future<void> _refreshChampionship() async {
+    if (_championship?.id == null) return;
+    
+    try {
+      final updated = await ApiService.getChampionship(_championship!.id!);
+      setState(() {
+        _championship = updated;
+      });
+      if (updated.status == ChampionshipStatus.finalized) {
+        _loadStandings();
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
   Future<void> _loadAllPlayers() async {
     setState(() {
       _isLoadingAllPlayers = true;
@@ -1416,7 +1445,171 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
     }
   }
 
+  Future<void> _loadStandings() async {
+    if (_championship?.id == null) return;
+    
+    setState(() {
+      _isLoadingStandings = true;
+    });
+
+    try {
+      final standings = await ApiService.getStandings(_championship!.id!);
+      setState(() {
+        _standings = standings;
+        _isLoadingStandings = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingStandings = false;
+      });
+    }
+  }
+
+  Future<void> _loadMatches() async {
+    if (_championship?.id == null) return;
+    
+    setState(() {
+      _isLoadingMatches = true;
+    });
+
+    try {
+      final matches = await ApiService.getAllMatches(championshipId: _championship!.id);
+      setState(() {
+        _matches = matches;
+        _isLoadingMatches = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingMatches = false;
+      });
+    }
+  }
+
+  Future<void> _finalizeChampionship() async {
+    if (_championship?.id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Finalize Championship'),
+        content: const Text(
+          'Are you sure you want to finalize this championship? '
+          'After finalizing, you cannot add or remove players anymore.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Finalize'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isFinalizing = true;
+    });
+
+    try {
+      final finalized = await ApiService.finalizeChampionship(_championship!.id!);
+      setState(() {
+        _championship = finalized;
+        _isFinalizing = false;
+      });
+      
+      // Reload standings after finalizing
+      if (finalized.status == ChampionshipStatus.finalized) {
+        _loadStandings();
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Championship finalized successfully')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isFinalizing = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error finalizing championship: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _generateMatches() async {
+    if (_championship?.id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Generate Matches'),
+        content: Text(
+          'This will generate all round-robin matches (each player plays against every other player once). '
+          'Total matches: ${_assignedPlayers.length * (_assignedPlayers.length - 1) ~/ 2}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Generate'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isGeneratingMatches = true;
+    });
+
+    try {
+      await ApiService.generateRoundRobinMatches(_championship!.id!);
+      setState(() {
+        _isGeneratingMatches = false;
+      });
+      
+      // Reload matches after generating
+      _loadMatches();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Matches generated successfully')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isGeneratingMatches = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating matches: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _addPlayerToChampionship(Player player) async {
+    if (_championship?.status == ChampionshipStatus.finalized) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot add players to a finalized championship')),
+        );
+      }
+      return;
+    }
+
     try {
       // Get current championships of the player
       final currentChampionships = player.championships ?? [];
@@ -1458,6 +1651,15 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
   }
 
   Future<void> _removePlayerFromChampionship(Player player) async {
+    if (_championship?.status == ChampionshipStatus.finalized) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot remove players from a finalized championship')),
+        );
+      }
+      return;
+    }
+
     try {
       if (player.id == null) {
         if (mounted) {
@@ -1561,19 +1763,22 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.championship.name),
+        title: Text(_championship?.name ?? widget.championship.name),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _showAddPlayerDialog,
-            tooltip: 'Add Player',
-          ),
+          if (_championship?.status == ChampionshipStatus.draft)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: _showAddPlayerDialog,
+              tooltip: 'Add Player',
+            ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
           await _loadPlayers();
           await _loadAllPlayers();
+          await _loadMatches();
+          await _refreshChampionship();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -1593,21 +1798,86 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
                           const Icon(Icons.emoji_events, size: 32),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              widget.championship.name,
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _championship?.name ?? widget.championship.name,
+                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Chip(
+                                  label: Text(
+                                    _championship?.status == ChampionshipStatus.finalized
+                                        ? 'Finalized'
+                                        : 'Draft',
+                                    style: const TextStyle(fontSize: 12),
                                   ),
+                                  backgroundColor: _championship?.status == ChampionshipStatus.finalized
+                                      ? Colors.green.withOpacity(0.2)
+                                      : Colors.orange.withOpacity(0.2),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      if (widget.championship.description != null &&
-                          widget.championship.description!.isNotEmpty) ...[
+                      if ((_championship?.description ?? widget.championship.description) != null &&
+                          (_championship?.description ?? widget.championship.description)!.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Text(
-                          widget.championship.description!,
+                          _championship?.description ?? widget.championship.description!,
                           style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      // Action buttons
+                      if (_championship?.status == ChampionshipStatus.draft) ...[
+                        ElevatedButton.icon(
+                          onPressed: _assignedPlayers.length < 2
+                              ? null
+                              : _isFinalizing
+                                  ? null
+                                  : _finalizeChampionship,
+                          icon: _isFinalizing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.lock),
+                          label: const Text('Finalize Championship'),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                        ),
+                        if (_assignedPlayers.length < 2)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              'At least 2 players required to finalize',
+                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                            ),
+                          ),
+                      ] else ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _isGeneratingMatches ? null : _generateMatches,
+                                icon: _isGeneratingMatches
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.shuffle),
+                                label: const Text('Generate Matches'),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -1615,9 +1885,248 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
                 ),
               ),
 
+              // Standings Section (if finalized)
+              if (_championship?.status == ChampionshipStatus.finalized) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'Standings',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                if (_isLoadingStandings)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_standings.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'No matches finished yet',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                else
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      children: [
+                        for (int i = 0; i < _standings.length; i++)
+                          ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: i == 0
+                                  ? Colors.amber
+                                  : i == 1
+                                      ? Colors.grey.shade400
+                                      : i == 2
+                                          ? Colors.brown.shade300
+                                          : Colors.blue.shade100,
+                              child: Text(
+                                '${i + 1}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: i < 3 ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ),
+                            title: Text(_standings[i]['player_name'] ?? ''),
+                            trailing: Text(
+                              '${_standings[i]['points'] ?? 0} pts',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+
+              // Matches Section (if finalized)
+              if (_championship?.status == ChampionshipStatus.finalized) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'Matches (${_matches.length})',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                if (_isLoadingMatches)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_matches.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'No matches yet. Generate matches to start.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                else
+                  ..._matches.map((match) {
+                    final isPlayer1Winner = match.winner == match.player1;
+                    final isDraw = match.winner == null && match.status == MatchStatus.finished;
+                    
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MatchDetailPage(match: match),
+                            ),
+                          ).then((_) => _loadMatches());
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              // Status indicator
+                              Container(
+                                width: 4,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: match.status == MatchStatus.pending
+                                      ? Colors.grey
+                                      : match.status == MatchStatus.started
+                                          ? Colors.green
+                                          : Colors.blue,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(2),
+                                    bottomLeft: Radius.circular(2),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            match.player1,
+                                            style: TextStyle(
+                                              fontWeight: isPlayer1Winner && !isDraw
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${match.player1Score}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: match.status == MatchStatus.started
+                                                ? Colors.blue
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                        const Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: Text('vs'),
+                                        ),
+                                        Text(
+                                          '${match.player2Score}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: match.status == MatchStatus.started
+                                                ? Colors.blue
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            match.player2,
+                                            textAlign: TextAlign.end,
+                                            style: TextStyle(
+                                              fontWeight: !isPlayer1Winner && !isDraw && match.winner != null
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Chip(
+                                          label: Text(
+                                            match.status == MatchStatus.pending
+                                                ? 'Pending'
+                                                : match.status == MatchStatus.started
+                                                    ? 'Live'
+                                                    : 'Finished',
+                                            style: const TextStyle(fontSize: 10),
+                                          ),
+                                          backgroundColor: match.status == MatchStatus.pending
+                                              ? Colors.grey.withOpacity(0.2)
+                                              : match.status == MatchStatus.started
+                                                  ? Colors.green.withOpacity(0.2)
+                                                  : Colors.blue.withOpacity(0.2),
+                                        ),
+                                        if (match.status == MatchStatus.finished && match.winner != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8.0),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.emoji_events, size: 16, color: Colors.amber),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  match.winner!,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        else if (match.status == MatchStatus.finished && match.winner == null)
+                                          const Padding(
+                                            padding: EdgeInsets.only(left: 8.0),
+                                            child: Text(
+                                              'Draw',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontStyle: FontStyle.italic,
+                                                color: Colors.orange,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right, color: Colors.grey),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+              ],
+
               // Players Section
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1627,11 +2136,12 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
                             fontWeight: FontWeight.bold,
                           ),
                     ),
-                    TextButton.icon(
-                      onPressed: _showAddPlayerDialog,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Player'),
-                    ),
+                    if (_championship?.status == ChampionshipStatus.draft)
+                      TextButton.icon(
+                        onPressed: _showAddPlayerDialog,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Player'),
+                      ),
                   ],
                 ),
               ),
@@ -1705,11 +2215,13 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
                           ),
                         ),
                         title: Text(player.name),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                          onPressed: () => _removePlayerFromChampionship(player),
-                          tooltip: 'Remove from Championship',
-                        ),
+                        trailing: _championship?.status == ChampionshipStatus.draft
+                            ? IconButton(
+                                icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                                onPressed: () => _removePlayerFromChampionship(player),
+                                tooltip: 'Remove from Championship',
+                              )
+                            : null,
                       ),
                     );
                   },
@@ -1719,6 +2231,425 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class MatchDetailPage extends StatefulWidget {
+  final Match match;
+
+  const MatchDetailPage({super.key, required this.match});
+
+  @override
+  State<MatchDetailPage> createState() => _MatchDetailPageState();
+}
+
+class _MatchDetailPageState extends State<MatchDetailPage> {
+  late Match _match;
+  bool _isLoading = false;
+  bool _isUpdating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _match = widget.match;
+    _loadMatch();
+  }
+
+  Future<void> _loadMatch() async {
+    if (_match.id == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final match = await ApiService.getMatch(_match.id!);
+      setState(() {
+        _match = match;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading match: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _startMatch() async {
+    if (_match.id == null) return;
+
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      final match = await ApiService.startMatch(_match.id!);
+      setState(() {
+        _match = match;
+        _isUpdating = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Match started')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUpdating = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error starting match: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateScore(int player1Score, int player2Score) async {
+    if (_match.id == null) return;
+
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      final match = await ApiService.updateMatchScore(_match.id!, player1Score, player2Score);
+      setState(() {
+        _match = match;
+        _isUpdating = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isUpdating = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating score: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _finishMatch() async {
+    if (_match.id == null) return;
+
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      final match = await ApiService.finishMatch(_match.id!);
+      setState(() {
+        _match = match;
+        _isUpdating = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Match finished')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUpdating = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error finishing match: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_match.game),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadMatch,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Status Chip
+                      Center(
+                        child: Chip(
+                          label: Text(
+                            _match.status == MatchStatus.pending
+                                ? 'Pending'
+                                : _match.status == MatchStatus.started
+                                    ? 'Live'
+                                    : 'Finished',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          backgroundColor: _match.status == MatchStatus.pending
+                              ? Colors.grey.withOpacity(0.2)
+                              : _match.status == MatchStatus.started
+                                  ? Colors.green.withOpacity(0.2)
+                                  : Colors.blue.withOpacity(0.2),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Score Display
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            children: [
+                              // Player 1
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _match.player1,
+                                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          '${_match.player1Score}',
+                                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: _match.status == MatchStatus.started
+                                                    ? Colors.blue
+                                                    : Colors.black,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Text(
+                                    'vs',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          _match.player2,
+                                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                          textAlign: TextAlign.end,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          '${_match.player2Score}',
+                                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: _match.status == MatchStatus.started
+                                                    ? Colors.blue
+                                                    : Colors.black,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (_match.status == MatchStatus.finished && _match.winner != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.emoji_events, color: Colors.amber),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Winner: ${_match.winner}',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (_match.status == MatchStatus.finished && _match.winner == null)
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 16.0),
+                                  child: Text(
+                                    'Draw',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Action Buttons
+                      if (_match.status == MatchStatus.pending)
+                        ElevatedButton.icon(
+                          onPressed: _isUpdating ? null : _startMatch,
+                          icon: _isUpdating
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: const Text('Start Match'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            minimumSize: const Size(double.infinity, 56),
+                          ),
+                        )
+                      else if (_match.status == MatchStatus.started) ...[
+                        // Score Update Controls
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Update Score',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          Text(_match.player1),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.remove),
+                                                onPressed: _isUpdating || _match.player1Score <= 0
+                                                    ? null
+                                                    : () => _updateScore(
+                                                          _match.player1Score - 1,
+                                                          _match.player2Score,
+                                                        ),
+                                              ),
+                                              Text(
+                                                '${_match.player1Score}',
+                                                style: const TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.add),
+                                                onPressed: _isUpdating
+                                                    ? null
+                                                    : () => _updateScore(
+                                                          _match.player1Score + 1,
+                                                          _match.player2Score,
+                                                        ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Text('vs', style: TextStyle(fontSize: 18)),
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          Text(_match.player2),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.remove),
+                                                onPressed: _isUpdating || _match.player2Score <= 0
+                                                    ? null
+                                                    : () => _updateScore(
+                                                          _match.player1Score,
+                                                          _match.player2Score - 1,
+                                                        ),
+                                              ),
+                                              Text(
+                                                '${_match.player2Score}',
+                                                style: const TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.add),
+                                                onPressed: _isUpdating
+                                                    ? null
+                                                    : () => _updateScore(
+                                                          _match.player1Score,
+                                                          _match.player2Score + 1,
+                                                        ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _isUpdating ? null : _finishMatch,
+                          icon: _isUpdating
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.stop),
+                          label: const Text('Finish Match'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            minimumSize: const Size(double.infinity, 56),
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

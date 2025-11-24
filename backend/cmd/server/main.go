@@ -52,6 +52,8 @@ func main() {
 		api.GET("/championships/:id", championshipHandler.GetChampionship)
 		api.PUT("/championships/:id", championshipHandler.UpdateChampionship)
 		api.DELETE("/championships/:id", championshipHandler.DeleteChampionship)
+		api.POST("/championships/:id/finalize", championshipHandler.FinalizeChampionship)
+		api.GET("/championships/:id/standings", championshipHandler.GetStandings)
 
 		// Players
 		api.GET("/players", playerHandler.GetAllPlayers)
@@ -64,7 +66,11 @@ func main() {
 		api.GET("/matches", matchHandler.GetAllMatches)
 		api.POST("/matches", matchHandler.CreateMatch)
 		api.GET("/matches/:id", matchHandler.GetMatch)
-		api.DELETE("/matches/:id", matchHandler.DeleteMatch)
+		// DELETE endpoint removed - matches should not be deletable
+		api.POST("/championships/:id/generate-matches", matchHandler.GenerateRoundRobinMatches)
+		api.POST("/matches/:id/start", matchHandler.StartMatch)
+		api.PUT("/matches/:id/score", matchHandler.UpdateMatchScore)
+		api.POST("/matches/:id/finish", matchHandler.FinishMatch)
 	}
 
 	port := os.Getenv("API_PORT")

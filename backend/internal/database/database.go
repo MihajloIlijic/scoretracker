@@ -145,6 +145,18 @@ func Migrate(db *gorm.DB) error {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 
+	// Make winner column nullable if it exists and is not nullable
+	if db.Migrator().HasColumn(&models.Match{}, "winner") {
+		// Check if column is nullable by trying to alter it
+		// If it fails, it might already be nullable, so we ignore the error
+		db.Exec("ALTER TABLE matches ALTER COLUMN winner DROP NOT NULL")
+	}
+
+	// Make sure status column has default value
+	if db.Migrator().HasColumn(&models.Match{}, "status") {
+		db.Exec("ALTER TABLE matches ALTER COLUMN status SET DEFAULT 'pending'")
+	}
+
 	return nil
 }
 

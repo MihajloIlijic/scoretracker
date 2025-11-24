@@ -83,7 +83,7 @@ func (h *PlayerHandler) CreatePlayer(c *gin.Context) {
 
 	// If championships are provided, verify and assign them
 	if len(request.ChampionshipIDs) > 0 {
-		// Verify all championships exist
+		// Verify all championships exist and are not finalized
 		var championships []models.Championship
 		if err := h.DB.Where("id IN ?", request.ChampionshipIDs).Find(&championships).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify championships"})
@@ -93,6 +93,14 @@ func (h *PlayerHandler) CreatePlayer(c *gin.Context) {
 		if len(championships) != len(request.ChampionshipIDs) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "One or more championships not found"})
 			return
+		}
+
+		// Check if any championship is finalized
+		for _, champ := range championships {
+			if champ.Status == models.ChampionshipStatusFinalized {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot add players to a finalized championship"})
+				return
+			}
 		}
 
 		player.Championships = championships
@@ -145,6 +153,70 @@ func (h *PlayerHandler) UpdatePlayer(c *gin.Context) {
 
 	// Update championships - always process if field is present (even if empty array)
 	if request.ChampionshipIDs != nil {
+		// Get current championships
+		var currentChampionships []models.Championship
+		h.DB.Model(&player).Association("Championships").Find(&currentChampionships)
+		
+		// Create a map of current championship IDs for quick lookup
+		currentChampIDs := make(map[uint]bool)
+		for _, champ := range currentChampionships {
+			currentChampIDs[champ.ID] = true
+		}
+		
+		// Create a map of new championship IDs
+		newChampIDs := make(map[uint]bool)
+		for _, id := range request.ChampionshipIDs {
+			newChampIDs[id] = true
+		}
+		
+		// Find championships that are being removed (in current but not in new)
+		var removedChampIDs []uint
+		for id := range currentChampIDs {
+			if !newChampIDs[id] {
+				removedChampIDs = append(removedChampIDs, id)
+			}
+		}
+		
+		// Check if any removed championships are finalized
+		if len(removedChampIDs) > 0 {
+			var removedChampionships []models.Championship
+			if err := h.DB.Where("id IN ?", removedChampIDs).Find(&removedChampionships).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify removed championships"})
+				return
+			}
+			
+			for _, champ := range removedChampionships {
+				if champ.Status == models.ChampionshipStatusFinalized {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot remove players from a finalized championship"})
+					return
+				}
+			}
+		}
+
+		// Find championships that are being added (in new but not in current)
+		var addedChampIDs []uint
+		for _, id := range request.ChampionshipIDs {
+			if !currentChampIDs[id] {
+				addedChampIDs = append(addedChampIDs, id)
+			}
+		}
+		
+		// Check if any added championships are finalized
+		if len(addedChampIDs) > 0 {
+			var addedChampionships []models.Championship
+			if err := h.DB.Where("id IN ?", addedChampIDs).Find(&addedChampionships).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify added championships"})
+				return
+			}
+			
+			for _, champ := range addedChampionships {
+				if champ.Status == models.ChampionshipStatusFinalized {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot add players to a finalized championship"})
+					return
+				}
+			}
+		}
+
 		// Use GORM's Table method for direct SQL operations
 		// First, delete all existing associations for this player
 		result := h.DB.Table("player_championships").Where("player_id = ?", player.ID).Delete(nil)
