@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+typedef CardThemeData = CardTheme;
+
 class AppTheme {
   // Colors - Modern Gradient Palette
   static const Color primaryColor = Color(0xFF6366F1); // Indigo
@@ -90,18 +92,17 @@ class AppTheme {
         ),
       ),
       
-      // Card Theme - Modern with subtle shadow
-      cardTheme: CardThemeData(
+      cardTheme: ThemeData().cardTheme.copyWith(
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusL),
-        ),
         margin: const EdgeInsets.symmetric(
           horizontal: spacingM,
           vertical: spacingS,
         ),
         color: surfaceColor,
-        shadowColor: Colors.black.withOpacity(0.05),
+        shadowColor: Colors.black12,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+        ),
       ),
       
       // Elevated Button Theme
