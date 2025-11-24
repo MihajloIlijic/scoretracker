@@ -1,6 +1,9 @@
 # Build stage
 FROM cirrusci/flutter:latest AS builder
 
+# Allow overriding the API base URL at build time
+ARG API_BASE_URL=http://localhost:8080/api
+
 # Create a non-root user
 RUN groupadd -r flutter && useradd -r -g flutter flutter
 
@@ -19,8 +22,8 @@ RUN flutter pub get
 # Copy source code
 COPY --chown=flutter:flutter . .
 
-# Build Flutter web app
-RUN flutter build web --release
+# Build Flutter web app with configured API endpoint
+RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
 
 # Production stage
 FROM nginx:alpine
