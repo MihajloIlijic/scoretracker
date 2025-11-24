@@ -9,11 +9,11 @@ RUN groupadd -r flutter && useradd -r -g flutter flutter
 
 WORKDIR /app
 
-# Change ownership to flutter user
-RUN chown -R flutter:flutter /app
+# Change ownership to flutter user and prepare home directory
+RUN mkdir -p /home/flutter && chown -R flutter:flutter /home/flutter /app
 
-# Fix Flutter repo ownership warning before switching user
-RUN mkdir -p /home/flutter && touch /home/flutter/.gitconfig && git config --global --add safe.directory /sdks/flutter
+# Allow Flutter SDK directory for git (system-wide)
+RUN git config --system --add safe.directory /sdks/flutter
 
 # Switch to non-root user
 USER flutter
