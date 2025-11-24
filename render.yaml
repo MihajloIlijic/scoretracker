@@ -35,5 +35,7 @@ services:
         fromDatabase:
           name: scoretracker-db
           property: database
+      - key: DB_SSLMODE
+        value: require
     healthCheckPath: /api/health
 

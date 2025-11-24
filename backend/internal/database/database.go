@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"scoretracker/backend/internal/models"
 
@@ -19,7 +20,7 @@ func Connect() (*gorm.DB, error) {
 	dbName := getEnv("DB_NAME", "scoretracker_db")
 
 	// Use sslmode=require for production (Render), disable for local
-	sslMode := getEnv("DB_SSLMODE", "disable")
+	sslMode := getEnv("DB_SSLMODE", "")
 	if sslMode == "" {
 		// Auto-detect: if not localhost, use require
 		if dbHost != "localhost" && dbHost != "127.0.0.1" {
@@ -28,18 +29,39 @@ func Connect() (*gorm.DB, error) {
 			sslMode = "disable"
 		}
 	}
+	
+	// Log connection details (without password)
+	fmt.Printf("Connecting to database: host=%s port=%s user=%s dbname=%s sslmode=%s\n", 
+		dbHost, dbPort, dbUser, dbName, sslMode)
+	
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		dbHost, dbPort, dbUser, dbPassword, dbName, sslMode)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	// Retry connection with exponential backoff
+	var db *gorm.DB
+	var err error
+	maxRetries := 10
+	retryDelay := 2 * time.Second
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	for i := 0; i < maxRetries; i++ {
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info),
+		})
+
+		if err == nil {
+			fmt.Printf("Successfully connected to database\n")
+			return db, nil
+		}
+
+		if i < maxRetries-1 {
+			fmt.Printf("Failed to connect to database (attempt %d/%d): %v. Retrying in %v...\n", 
+				i+1, maxRetries, err, retryDelay)
+			time.Sleep(retryDelay)
+			retryDelay *= 2 // Exponential backoff
+		}
 	}
 
-	return db, nil
+	return nil, fmt.Errorf("failed to connect to database after %d attempts: %w", maxRetries, err)
 }
 
 func Migrate(db *gorm.DB) error {
