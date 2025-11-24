@@ -38,4 +38,7 @@ services:
       - key: DB_SSLMODE
         value: require
     healthCheckPath: /api/health
+    # Ensure database is created before backend starts
+    dependsOn:
+      - scoretracker-db
 
