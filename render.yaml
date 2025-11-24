@@ -10,7 +10,7 @@ services:
   - type: web
     name: scoretracker-backend
     env: docker
-    dockerfilePath: ./Dockerfile.backend
+    dockerfilePath: ./Dockerfile
     plan: free
     envVars:
       - key: API_PORT
