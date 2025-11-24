@@ -1,5 +1,5 @@
 # Build stage
-FROM cirrusci/flutter:latest AS builder
+FROM ghcr.io/cirruslabs/flutter:3.24.3 AS builder
 
 # Allow overriding the API base URL at build time
 ARG API_BASE_URL=http://localhost:8080/api
