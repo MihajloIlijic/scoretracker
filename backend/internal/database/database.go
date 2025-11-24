@@ -13,6 +13,15 @@ import (
 )
 
 func Connect() (*gorm.DB, error) {
+	// Log all environment variables for debugging
+	fmt.Printf("Environment variables:\n")
+	fmt.Printf("  DB_HOST: %s\n", os.Getenv("DB_HOST"))
+	fmt.Printf("  DB_PORT: %s\n", os.Getenv("DB_PORT"))
+	fmt.Printf("  DB_USER: %s\n", os.Getenv("DB_USER"))
+	fmt.Printf("  DB_PASSWORD: %s (length: %d)\n", maskPassword(os.Getenv("DB_PASSWORD")), len(os.Getenv("DB_PASSWORD")))
+	fmt.Printf("  DB_NAME: %s\n", os.Getenv("DB_NAME"))
+	fmt.Printf("  DB_SSLMODE: %s\n", os.Getenv("DB_SSLMODE"))
+	
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5432")
 	dbUser := getEnv("DB_USER", "scoretracker")
@@ -31,7 +40,7 @@ func Connect() (*gorm.DB, error) {
 	}
 	
 	// Log connection details (without password)
-	fmt.Printf("Connecting to database: host=%s port=%s user=%s dbname=%s sslmode=%s\n", 
+	fmt.Printf("Using connection: host=%s port=%s user=%s dbname=%s sslmode=%s\n", 
 		dbHost, dbPort, dbUser, dbName, sslMode)
 	
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -197,5 +206,15 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func maskPassword(password string) string {
+	if len(password) == 0 {
+		return "<empty>"
+	}
+	if len(password) <= 4 {
+		return "****"
+	}
+	return password[:2] + "****" + password[len(password)-2:]
 }
 
