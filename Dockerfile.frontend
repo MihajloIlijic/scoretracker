@@ -10,7 +10,7 @@ RUN groupadd -r flutter && useradd -r -g flutter flutter
 WORKDIR /app
 
 # Change ownership to flutter user and prepare home directory
-RUN mkdir -p /home/flutter && chown -R flutter:flutter /home/flutter /app
+RUN mkdir -p /home/flutter && chown -R flutter:flutter /home/flutter /app /sdks/flutter
 
 # Allow Flutter SDK directory for git (system-wide)
 RUN git config --system --add safe.directory /sdks/flutter
