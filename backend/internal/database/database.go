@@ -33,7 +33,115 @@ func Connect() (*gorm.DB, error) {
 }
 
 func Migrate(db *gorm.DB) error {
-	if err := db.AutoMigrate(&models.Score{}, &models.Match{}); err != nil {
+	// First, create Championship and Player tables
+	if err := db.AutoMigrate(
+		&models.Championship{},
+		&models.Player{},
+	); err != nil {
+		return fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	// Check if matches table exists and has data
+	var matchCount int64
+	db.Table("matches").Count(&matchCount)
+	
+	// Check if scores table exists and has data - migrate to players
+	var scoreCount int64
+	db.Table("scores").Count(&scoreCount)
+
+	// If there are existing matches or scores, we need to handle the migration carefully
+	if matchCount > 0 || scoreCount > 0 {
+		// Create a default championship for existing data
+		var defaultChamp models.Championship
+		result := db.Where("name = ?", "Default Championship").First(&defaultChamp)
+		if result.Error == gorm.ErrRecordNotFound {
+			defaultChamp = models.Championship{
+				Name:        "Default Championship",
+				Description: "Default championship for existing data",
+			}
+			if err := db.Create(&defaultChamp).Error; err != nil {
+				return fmt.Errorf("failed to create default championship: %w", err)
+			}
+		}
+
+		// Add championship_id column as nullable first
+		if matchCount > 0 {
+			if !db.Migrator().HasColumn(&models.Match{}, "championship_id") {
+				if err := db.Exec("ALTER TABLE matches ADD COLUMN championship_id bigint").Error; err != nil {
+					// Column might already exist, ignore error
+				}
+				// Update existing matches
+				if err := db.Exec("UPDATE matches SET championship_id = ? WHERE championship_id IS NULL", defaultChamp.ID).Error; err != nil {
+					return fmt.Errorf("failed to update existing matches: %w", err)
+				}
+			}
+		}
+
+		// Migrate scores to players and existing players to many-to-many
+		if scoreCount > 0 {
+			// Get unique player names from scores with their championship_id
+			type ScoreData struct {
+				Player        string
+				ChampionshipID uint
+			}
+			var scoreData []ScoreData
+			if err := db.Table("scores").
+				Select("DISTINCT player, COALESCE(championship_id, ?) as championship_id", defaultChamp.ID).
+				Scan(&scoreData).Error; err != nil {
+				return fmt.Errorf("failed to read scores: %w", err)
+			}
+
+			// Create players from unique score entries
+			for _, sd := range scoreData {
+				// Check if player already exists by name
+				var existingPlayer models.Player
+				result := db.Where("name = ?", sd.Player).First(&existingPlayer)
+				if result.Error == gorm.ErrRecordNotFound {
+					// Create new player
+					player := models.Player{
+						Name: sd.Player,
+					}
+					if err := db.Create(&player).Error; err != nil {
+						fmt.Printf("Warning: Could not create player %s: %v\n", sd.Player, err)
+						continue
+					}
+					existingPlayer = player
+				}
+				
+				// Associate player with championship
+				var champ models.Championship
+				if err := db.First(&champ, sd.ChampionshipID).Error; err == nil {
+					db.Model(&existingPlayer).Association("Championships").Append(&champ)
+				}
+			}
+		}
+
+		// Migrate existing players with championship_id to many-to-many
+		if db.Migrator().HasColumn(&models.Player{}, "championship_id") {
+			var playersWithChamp []struct {
+				ID            uint
+				ChampionshipID uint
+			}
+			if err := db.Table("players").
+				Select("id, championship_id").
+				Where("championship_id IS NOT NULL AND championship_id != 0").
+				Scan(&playersWithChamp).Error; err == nil {
+				for _, pwc := range playersWithChamp {
+					var player models.Player
+					var champ models.Championship
+					if db.First(&player, pwc.ID).Error == nil &&
+						db.First(&champ, pwc.ChampionshipID).Error == nil {
+						db.Model(&player).Association("Championships").Append(&champ)
+					}
+				}
+			}
+		}
+	}
+
+	// Now migrate Match with NOT NULL constraint
+	if err := db.AutoMigrate(
+		&models.Match{},
+	); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 

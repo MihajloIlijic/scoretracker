@@ -40,17 +40,27 @@ func main() {
 
 	router.GET("/api/health", handlers.HealthCheck)
 
-	scoreHandler := handlers.NewScoreHandler(db)
 	matchHandler := handlers.NewMatchHandler(db)
+	championshipHandler := handlers.NewChampionshipHandler(db)
+	playerHandler := handlers.NewPlayerHandler(db)
+	
 	api := router.Group("/api")
 	{
-		api.GET("/scores", scoreHandler.GetAllScores)
-		api.POST("/scores", scoreHandler.CreateScore)
-		api.GET("/scores/:id", scoreHandler.GetScore)
-		api.PUT("/scores/:id", scoreHandler.UpdateScore)
-		api.DELETE("/scores/:id", scoreHandler.DeleteScore)
-		api.GET("/players", scoreHandler.GetPlayers)
+		// Championships
+		api.GET("/championships", championshipHandler.GetAllChampionships)
+		api.POST("/championships", championshipHandler.CreateChampionship)
+		api.GET("/championships/:id", championshipHandler.GetChampionship)
+		api.PUT("/championships/:id", championshipHandler.UpdateChampionship)
+		api.DELETE("/championships/:id", championshipHandler.DeleteChampionship)
 
+		// Players
+		api.GET("/players", playerHandler.GetAllPlayers)
+		api.POST("/players", playerHandler.CreatePlayer)
+		api.GET("/players/:id", playerHandler.GetPlayer)
+		api.PUT("/players/:id", playerHandler.UpdatePlayer)
+		api.DELETE("/players/:id", playerHandler.DeletePlayer)
+
+		// Matches
 		api.GET("/matches", matchHandler.GetAllMatches)
 		api.POST("/matches", matchHandler.CreateMatch)
 		api.GET("/matches/:id", matchHandler.GetMatch)

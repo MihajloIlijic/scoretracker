@@ -20,8 +20,17 @@ func NewScoreHandler(db *gorm.DB) *ScoreHandler {
 
 func (h *ScoreHandler) GetAllScores(c *gin.Context) {
 	var scores []models.Score
+	championshipID := c.Query("championship_id")
 
-	if err := h.DB.Find(&scores).Error; err != nil {
+	query := h.DB
+	if championshipID != "" {
+		id, err := strconv.ParseUint(championshipID, 10, 32)
+		if err == nil {
+			query = query.Where("championship_id = ?", id)
+		}
+	}
+
+	if err := query.Preload("Championship").Order("created_at DESC").Find(&scores).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch scores"})
 		return
 	}
@@ -54,6 +63,22 @@ func (h *ScoreHandler) CreateScore(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&score); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if score.ChampionshipID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Championship ID is required"})
+		return
+	}
+
+	// Verify championship exists
+	var championship models.Championship
+	if err := h.DB.First(&championship, score.ChampionshipID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Championship not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify championship"})
 		return
 	}
 
@@ -121,15 +146,31 @@ func (h *ScoreHandler) DeleteScore(c *gin.Context) {
 }
 
 func (h *ScoreHandler) GetPlayers(c *gin.Context) {
-	var players []string
+	// This endpoint is deprecated - use /api/players instead
+	// But keeping it for backward compatibility, now returns player names from Player model
+	var players []models.Player
+	championshipID := c.Query("championship_id")
 
-	if err := h.DB.Model(&models.Score{}).
-		Distinct("player").
-		Pluck("player", &players).Error; err != nil {
+	query := h.DB.Model(&models.Player{})
+	if championshipID != "" {
+		id, err := strconv.ParseUint(championshipID, 10, 32)
+		if err == nil {
+			// Filter players by championship using the join table
+			query = query.Joins("JOIN player_championships ON players.id = player_championships.player_id").
+				Where("player_championships.championship_id = ?", id)
+		}
+	}
+
+	if err := query.Find(&players).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch players"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"players": players})
+	playerNames := make([]string, len(players))
+	for i, p := range players {
+		playerNames[i] = p.Name
+	}
+
+	c.JSON(http.StatusOK, gin.H{"players": playerNames})
 }
 
