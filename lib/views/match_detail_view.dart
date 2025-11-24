@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/match_viewmodel.dart';
 import '../models/match.dart';
+import '../theme/app_theme.dart';
+import '../widgets/status_chip.dart';
 
 class MatchDetailView extends StatelessWidget {
   final Match match;
@@ -31,28 +33,14 @@ class MatchDetailView extends StatelessWidget {
                           children: [
                             // Status Chip
                             Center(
-                              child: Chip(
-                                label: Text(
-                                  viewModel.match.status == MatchStatus.pending
-                                      ? 'Pending'
-                                      : viewModel.match.status == MatchStatus.started
-                                          ? 'Live'
-                                          : 'Finished',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                                backgroundColor: viewModel.match.status == MatchStatus.pending
-                                    ? Colors.grey.withOpacity(0.2)
-                                    : viewModel.match.status == MatchStatus.started
-                                        ? Colors.green.withOpacity(0.2)
-                                        : Colors.blue.withOpacity(0.2),
-                              ),
+                              child: StatusChip.match(viewModel.match.status),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: AppTheme.spacingL),
 
                             // Score Display
                             Card(
                               child: Padding(
-                                padding: const EdgeInsets.all(24.0),
+                                padding: const EdgeInsets.all(AppTheme.spacingL),
                                 child: Column(
                                   children: [
                                     Row(
@@ -68,25 +56,25 @@ class MatchDetailView extends StatelessWidget {
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                               ),
-                                              const SizedBox(height: 8),
+                                              const SizedBox(height: AppTheme.spacingS),
                                               Text(
                                                 '${viewModel.match.player1Score}',
                                                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                                                       fontWeight: FontWeight.bold,
                                                       color: viewModel.match.status == MatchStatus.started
-                                                          ? Colors.blue
-                                                          : Colors.black,
+                                                          ? AppTheme.liveColor
+                                                          : AppTheme.textPrimary,
                                                     ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        const Text(
+                                        Text(
                                           'vs',
-                                          style: TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.textSecondary,
+                                              ),
                                         ),
                                         Expanded(
                                           child: Column(
@@ -99,14 +87,14 @@ class MatchDetailView extends StatelessWidget {
                                                     ),
                                                 textAlign: TextAlign.end,
                                               ),
-                                              const SizedBox(height: 8),
+                                              const SizedBox(height: AppTheme.spacingS),
                                               Text(
                                                 '${viewModel.match.player2Score}',
                                                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                                                       fontWeight: FontWeight.bold,
                                                       color: viewModel.match.status == MatchStatus.started
-                                                          ? Colors.blue
-                                                          : Colors.black,
+                                                          ? AppTheme.liveColor
+                                                          : AppTheme.textPrimary,
                                                     ),
                                               ),
                                             ],
@@ -116,40 +104,39 @@ class MatchDetailView extends StatelessWidget {
                                     ),
                                     if (viewModel.match.status == MatchStatus.finished && viewModel.match.winner != null)
                                       Padding(
-                                        padding: const EdgeInsets.only(top: 16.0),
+                                        padding: const EdgeInsets.only(top: AppTheme.spacingM),
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            const Icon(Icons.emoji_events, color: Colors.amber),
-                                            const SizedBox(width: 8),
+                                            const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+                                            const SizedBox(width: AppTheme.spacingS),
                                             Text(
                                               'Winner: ${viewModel.match.winner}',
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.amber,
-                                              ),
+                                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.amber.shade700,
+                                                  ),
                                             ),
                                           ],
                                         ),
                                       )
                                     else if (viewModel.match.status == MatchStatus.finished && viewModel.match.winner == null)
-                                      const Padding(
-                                        padding: EdgeInsets.only(top: 16.0),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: AppTheme.spacingM),
                                         child: Text(
                                           'Draw',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.orange,
-                                          ),
+                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.warningColor,
+                                                fontStyle: FontStyle.italic,
+                                              ),
                                         ),
                                       ),
                                   ],
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: AppTheme.spacingL),
 
                             // Action Buttons
                             if (viewModel.match.status == MatchStatus.pending)
@@ -164,7 +151,7 @@ class MatchDetailView extends StatelessWidget {
                                     : const Icon(Icons.play_arrow),
                                 label: const Text('Start Match'),
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
                                   minimumSize: const Size(double.infinity, 56),
                                 ),
                               )
@@ -172,18 +159,17 @@ class MatchDetailView extends StatelessWidget {
                               // Score Update Controls
                               Card(
                                 child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
+                                  padding: const EdgeInsets.all(AppTheme.spacingM),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Update Score',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
-                                      const SizedBox(height: 16),
+                                      const SizedBox(height: AppTheme.spacingM),
                                       Row(
                                         children: [
                                           Expanded(
@@ -277,7 +263,7 @@ class MatchDetailView extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppTheme.spacingM),
                               ElevatedButton.icon(
                                 onPressed: viewModel.isUpdating ? null : () => _finishMatch(context, viewModel),
                                 icon: viewModel.isUpdating
@@ -289,9 +275,9 @@ class MatchDetailView extends StatelessWidget {
                                     : const Icon(Icons.stop),
                                 label: const Text('Finish Match'),
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
                                   minimumSize: const Size(double.infinity, 56),
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: AppTheme.errorColor,
                                   foregroundColor: Colors.white,
                                 ),
                               ),

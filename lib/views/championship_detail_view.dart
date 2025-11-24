@@ -4,6 +4,10 @@ import '../viewmodels/championship_viewmodel.dart';
 import '../models/championship.dart';
 import '../models/player.dart';
 import '../models/match.dart';
+import '../theme/app_theme.dart';
+import '../widgets/status_chip.dart';
+import '../widgets/player_card.dart';
+import '../widgets/match_card.dart';
 import 'match_detail_view.dart';
 
 class ChampionshipDetailView extends StatelessWidget {
@@ -47,16 +51,35 @@ class ChampionshipDetailView extends StatelessWidget {
                   children: [
                     // Championship Info Card
                     Card(
-                      margin: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.all(AppTheme.spacingM),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(AppTheme.spacingM),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.emoji_events, size: 32),
-                                const SizedBox(width: 12),
+                                Container(
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFFFFD700),
+                                        Color(0xFFFFA500),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                                  ),
+                                  child: const Icon(
+                                    Icons.emoji_events,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacingM),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,18 +90,8 @@ class ChampionshipDetailView extends StatelessWidget {
                                               fontWeight: FontWeight.bold,
                                             ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Chip(
-                                        label: Text(
-                                          viewModel.championship.status == ChampionshipStatus.finalized
-                                              ? 'Finalized'
-                                              : 'Draft',
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                        backgroundColor: viewModel.championship.status == ChampionshipStatus.finalized
-                                            ? Colors.green.withOpacity(0.2)
-                                            : Colors.orange.withOpacity(0.2),
-                                      ),
+                                      const SizedBox(height: AppTheme.spacingXS),
+                                      StatusChip.championship(viewModel.championship.status),
                                     ],
                                   ),
                                 ),
@@ -86,13 +99,15 @@ class ChampionshipDetailView extends StatelessWidget {
                             ),
                             if (viewModel.championship.description != null &&
                                 viewModel.championship.description!.isNotEmpty) ...[
-                              const SizedBox(height: 12),
+                              const SizedBox(height: AppTheme.spacingM),
                               Text(
                                 viewModel.championship.description!,
-                                style: Theme.of(context).textTheme.bodyMedium,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
                               ),
                             ],
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppTheme.spacingL),
                             // Action buttons
                             if (viewModel.championship.status == ChampionshipStatus.draft) ...[
                               ElevatedButton.icon(
@@ -110,34 +125,33 @@ class ChampionshipDetailView extends StatelessWidget {
                                     : const Icon(Icons.lock),
                                 label: const Text('Finalize Championship'),
                                 style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 48),
+                                  minimumSize: const Size(double.infinity, 56),
                                 ),
                               ),
                               if (viewModel.assignedPlayers.length < 2)
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 8.0),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: AppTheme.spacingS),
                                   child: Text(
                                     'At least 2 players required to finalize',
-                                    style: TextStyle(color: Colors.orange, fontSize: 12),
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: AppTheme.warningColor,
+                                        ),
                                   ),
                                 ),
                             ] else ...[
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: viewModel.isGeneratingMatches ? null : () => _generateMatches(context, viewModel),
-                                      icon: viewModel.isGeneratingMatches
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(strokeWidth: 2),
-                                            )
-                                          : const Icon(Icons.shuffle),
-                                      label: const Text('Generate Matches'),
-                                    ),
-                                  ),
-                                ],
+                              ElevatedButton.icon(
+                                onPressed: viewModel.isGeneratingMatches ? null : () => _generateMatches(context, viewModel),
+                                icon: viewModel.isGeneratingMatches
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.shuffle),
+                                label: const Text('Generate Matches'),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 56),
+                                ),
                               ),
                             ],
                           ],
@@ -148,7 +162,10 @@ class ChampionshipDetailView extends StatelessWidget {
                     // Standings Section (if finalized)
                     if (viewModel.championship.status == ChampionshipStatus.finalized) ...[
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingM,
+                          vertical: AppTheme.spacingS,
+                        ),
                         child: Text(
                           'Standings',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -158,48 +175,84 @@ class ChampionshipDetailView extends StatelessWidget {
                       ),
                       if (viewModel.isLoadingStandings)
                         const Padding(
-                          padding: EdgeInsets.all(16.0),
+                          padding: EdgeInsets.all(AppTheme.spacingM),
                           child: Center(child: CircularProgressIndicator()),
                         )
                       else if (viewModel.standings.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
+                        Padding(
+                          padding: const EdgeInsets.all(AppTheme.spacingM),
                           child: Center(
                             child: Text(
                               'No matches finished yet',
-                              style: TextStyle(color: Colors.grey),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
                             ),
                           ),
                         )
                       else
                         Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacingM,
+                            vertical: AppTheme.spacingS,
+                          ),
                           child: Column(
                             children: [
                               for (int i = 0; i < viewModel.standings.length; i++)
                                 ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: i == 0
-                                        ? Colors.amber
-                                        : i == 1
-                                            ? Colors.grey.shade400
-                                            : i == 2
-                                                ? Colors.brown.shade300
-                                                : Colors.blue.shade100,
-                                    child: Text(
-                                      '${i + 1}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: i < 3 ? Colors.white : Colors.black,
+                                  leading: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      gradient: i == 0
+                                          ? const LinearGradient(
+                                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                                            )
+                                          : i == 1
+                                              ? LinearGradient(
+                                                  colors: [Colors.grey.shade400, Colors.grey.shade600],
+                                                )
+                                              : i == 2
+                                                  ? LinearGradient(
+                                                      colors: [Colors.brown.shade300, Colors.brown.shade500],
+                                                    )
+                                                  : LinearGradient(
+                                                      colors: [AppTheme.primaryLight, AppTheme.primaryColor],
+                                                    ),
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${i + 1}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: i < 3 ? Colors.white : Colors.black,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  title: Text(viewModel.standings[i]['player_name'] ?? ''),
-                                  trailing: Text(
-                                    '${viewModel.standings[i]['points'] ?? 0} pts',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                  title: Text(
+                                    viewModel.standings[i]['player_name'] ?? '',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  trailing: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppTheme.spacingM,
+                                      vertical: AppTheme.spacingXS,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                                    ),
+                                    child: Text(
+                                      '${viewModel.standings[i]['points'] ?? 0} pts',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.primaryColor,
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -211,7 +264,10 @@ class ChampionshipDetailView extends StatelessWidget {
                     // Matches Section (if finalized)
                     if (viewModel.championship.status == ChampionshipStatus.finalized) ...[
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingM,
+                          vertical: AppTheme.spacingS,
+                        ),
                         child: Text(
                           'Matches (${viewModel.matches.length})',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -221,171 +277,46 @@ class ChampionshipDetailView extends StatelessWidget {
                       ),
                       if (viewModel.isLoadingMatches)
                         const Padding(
-                          padding: EdgeInsets.all(16.0),
+                          padding: EdgeInsets.all(AppTheme.spacingM),
                           child: Center(child: CircularProgressIndicator()),
                         )
                       else if (viewModel.matches.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
+                        Padding(
+                          padding: const EdgeInsets.all(AppTheme.spacingM),
                           child: Center(
                             child: Text(
                               'No matches yet. Generate matches to start.',
-                              style: TextStyle(color: Colors.grey),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
                             ),
                           ),
                         )
                       else
                         ...viewModel.matches.map((match) {
-                          final isPlayer1Winner = match.winner == match.player1;
-                          final isDraw = match.winner == null && match.status == MatchStatus.finished;
-                          
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            child: InkWell(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => MatchDetailView(match: match),
-                                  ),
-                                ).then((_) => viewModel.loadMatches());
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 4,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: match.status == MatchStatus.pending
-                                            ? Colors.grey
-                                            : match.status == MatchStatus.started
-                                                ? Colors.green
-                                                : Colors.blue,
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(2),
-                                          bottomLeft: Radius.circular(2),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  match.player1,
-                                                  style: TextStyle(
-                                                    fontWeight: isPlayer1Winner && !isDraw
-                                                        ? FontWeight.bold
-                                                        : FontWeight.normal,
-                                                  ),
-                                                ),
-                                              ),
-                                              Text(
-                                                '${match.player1Score}',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: match.status == MatchStatus.started
-                                                      ? Colors.blue
-                                                      : Colors.black,
-                                                ),
-                                              ),
-                                              const Padding(
-                                                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                                child: Text('vs'),
-                                              ),
-                                              Text(
-                                                '${match.player2Score}',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: match.status == MatchStatus.started
-                                                      ? Colors.blue
-                                                      : Colors.black,
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child: Text(
-                                                  match.player2,
-                                                  textAlign: TextAlign.end,
-                                                  style: TextStyle(
-                                                    fontWeight: !isPlayer1Winner && !isDraw && match.winner != null
-                                                        ? FontWeight.bold
-                                                        : FontWeight.normal,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Chip(
-                                                label: Text(
-                                                  match.status == MatchStatus.pending
-                                                      ? 'Pending'
-                                                      : match.status == MatchStatus.started
-                                                          ? 'Live'
-                                                          : 'Finished',
-                                                  style: const TextStyle(fontSize: 10),
-                                                ),
-                                                backgroundColor: match.status == MatchStatus.pending
-                                                    ? Colors.grey.withOpacity(0.2)
-                                                    : match.status == MatchStatus.started
-                                                        ? Colors.green.withOpacity(0.2)
-                                                        : Colors.blue.withOpacity(0.2),
-                                              ),
-                                              if (match.status == MatchStatus.finished && match.winner != null)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(left: 8.0),
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      const Icon(Icons.emoji_events, size: 16, color: Colors.amber),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        match.winner!,
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                )
-                                              else if (match.status == MatchStatus.finished && match.winner == null)
-                                                const Padding(
-                                                  padding: EdgeInsets.only(left: 8.0),
-                                                  child: Text(
-                                                    'Draw',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontStyle: FontStyle.italic,
-                                                      color: Colors.orange,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(Icons.chevron_right, color: Colors.grey),
-                                  ],
+                          return MatchCard(
+                            match: match,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MatchDetailView(match: match),
                                 ),
-                              ),
-                            ),
+                              ).then((_) {
+                                viewModel.loadMatches();
+                                viewModel.loadStandings();
+                              });
+                            },
                           );
-                        }).toList(),
+                        }),
                     ],
 
                     // Players Section
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingM,
+                        vertical: AppTheme.spacingS,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -408,21 +339,21 @@ class ChampionshipDetailView extends StatelessWidget {
                     // Players List
                     if (viewModel.isLoadingPlayers)
                       const Padding(
-                        padding: EdgeInsets.all(32.0),
+                        padding: EdgeInsets.all(AppTheme.spacingXXL),
                         child: Center(child: CircularProgressIndicator()),
                       )
                     else if (viewModel.errorMessage != null)
                       Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(AppTheme.spacingM),
                         child: Center(
                           child: Column(
                             children: [
                               Text(
                                 viewModel.errorMessage!,
-                                style: const TextStyle(color: Colors.red),
+                                style: TextStyle(color: AppTheme.errorColor),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppTheme.spacingM),
                               ElevatedButton(
                                 onPressed: () => viewModel.loadPlayers(),
                                 child: const Text('Retry'),
@@ -433,17 +364,23 @@ class ChampionshipDetailView extends StatelessWidget {
                       )
                     else if (viewModel.assignedPlayers.isEmpty)
                       Padding(
-                        padding: const EdgeInsets.all(32.0),
+                        padding: const EdgeInsets.all(AppTheme.spacingXXL),
                         child: Center(
                           child: Column(
                             children: [
-                              const Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'No players assigned yet',
-                                style: TextStyle(fontSize: 18, color: Colors.grey),
+                              Icon(
+                                Icons.people_outline,
+                                size: 64,
+                                color: AppTheme.textSecondary,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppTheme.spacingM),
+                              Text(
+                                'No players assigned yet',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
+                              ),
+                              const SizedBox(height: AppTheme.spacingM),
                               ElevatedButton.icon(
                                 onPressed: () => _showAddPlayerDialog(context, viewModel),
                                 icon: const Icon(Icons.add),
@@ -454,37 +391,15 @@ class ChampionshipDetailView extends StatelessWidget {
                         ),
                       )
                     else
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: viewModel.assignedPlayers.length,
-                        itemBuilder: (context, index) {
-                          final player = viewModel.assignedPlayers[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                child: Text(
-                                  player.name.isNotEmpty
-                                      ? player.name[0].toUpperCase()
-                                      : '?',
-                                ),
-                              ),
-                              title: Text(player.name),
-                              trailing: viewModel.championship.status == ChampionshipStatus.draft
-                                  ? IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                                      onPressed: () => _removePlayer(context, viewModel, player),
-                                      tooltip: 'Remove from Championship',
-                                    )
-                                  : null,
-                            ),
-                          );
-                        },
-                      ),
+                      ...viewModel.assignedPlayers.map((player) {
+                        return PlayerCard(
+                          player: player,
+                          showDelete: viewModel.championship.status == ChampionshipStatus.draft,
+                          onDelete: viewModel.championship.status == ChampionshipStatus.draft
+                              ? () => _removePlayer(context, viewModel, player)
+                              : null,
+                        );
+                      }),
                     const SizedBox(height: 16),
                   ],
                 ),

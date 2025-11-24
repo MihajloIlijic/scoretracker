@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/player_viewmodel.dart';
 import '../models/player.dart';
+import '../theme/app_theme.dart';
 import '../widgets/add_player_dialog.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
+import '../widgets/player_card.dart';
 
 class PlayerListView extends StatelessWidget {
   const PlayerListView({super.key});
@@ -16,72 +20,32 @@ class PlayerListView extends StatelessWidget {
         }
 
         if (viewModel.errorMessage != null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  viewModel.errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => viewModel.loadPlayers(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+          return ErrorState(
+            message: viewModel.errorMessage!,
+            onRetry: () => viewModel.loadPlayers(),
           );
         }
 
         if (viewModel.players.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.people,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'No players yet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Add players to participate in championships!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddDialog(context, viewModel),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Player'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
+          return EmptyState(
+            icon: Icons.people,
+            title: 'No players yet',
+            subtitle: 'Add players to participate in championships!',
+            actionLabel: 'Add Player',
+            onAction: () => _showAddDialog(context, viewModel),
           );
         }
 
         return Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppTheme.spacingM),
               child: ElevatedButton.icon(
                 onPressed: () => _showAddDialog(context, viewModel),
                 icon: const Icon(Icons.add),
                 label: const Text('Add New Player'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  minimumSize: const Size(double.infinity, 48),
+                  minimumSize: const Size(double.infinity, 56),
                 ),
               ),
             ),
@@ -89,32 +53,13 @@ class PlayerListView extends StatelessWidget {
               child: RefreshIndicator(
                 onRefresh: () => viewModel.loadPlayers(),
                 child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingS),
                   itemCount: viewModel.players.length,
                   itemBuilder: (context, index) {
                     final player = viewModel.players[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(
-                            player.name.isNotEmpty
-                                ? player.name[0].toUpperCase()
-                                : '?',
-                          ),
-                        ),
-                        title: Text(player.name),
-                        subtitle: player.championships != null && player.championships!.isNotEmpty
-                            ? Text('In ${player.championships!.length} championship(s)')
-                            : const Text('Not in any championship'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deletePlayer(context, viewModel, player),
-                          tooltip: 'Delete',
-                        ),
-                      ),
+                    return PlayerCard(
+                      player: player,
+                      onDelete: () => _deletePlayer(context, viewModel, player),
                     );
                   },
                 ),

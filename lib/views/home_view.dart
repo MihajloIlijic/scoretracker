@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../viewmodels/championship_viewmodel.dart';
-import '../viewmodels/player_viewmodel.dart';
-import '../viewmodels/match_viewmodel.dart';
+import '../theme/app_theme.dart';
 import 'championship_list_view.dart';
 import 'player_list_view.dart';
 import 'match_list_view.dart';
@@ -15,63 +12,124 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  int _currentIndex = 0;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _pageController = PageController(initialPage: _currentIndex);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ChampionshipViewModel()..loadChampionships()),
-        ChangeNotifierProvider(create: (_) => PlayerViewModel()..loadPlayers()),
-        ChangeNotifierProvider(create: (_) => MatchViewModel()..loadMatches()),
-      ],
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: const Text('Score Tracker'),
-          bottom: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabs: const [
-              Tab(icon: Icon(Icons.emoji_events), text: 'Championships'),
-              Tab(icon: Icon(Icons.people), text: 'Players'),
-              Tab(icon: Icon(Icons.sports_esports), text: 'Matches'),
-            ],
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                context.read<ChampionshipViewModel>().loadChampionships();
-                context.read<PlayerViewModel>().loadPlayers();
-                context.read<MatchViewModel>().loadMatches();
-              },
-              tooltip: 'Refresh',
+    return Scaffold(
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        children: const [
+          ChampionshipListView(),
+          PlayerListView(),
+          MatchListView(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.bottomNavColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
           ],
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            const ChampionshipListView(),
-            const PlayerListView(),
-            const MatchListView(),
-          ],
+        child: SafeArea(
+          child: Container(
+            height: 70,
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  icon: Icons.emoji_events_rounded,
+                  index: 0,
+                ),
+                _buildNavItem(
+                  icon: Icons.people_rounded,
+                  index: 1,
+                ),
+                _buildNavItem(
+                  icon: Icons.sports_esports_rounded,
+                  index: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required int index,
+  }) {
+    final isSelected = _currentIndex == index;
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTabTapped(index),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingS,
+            vertical: AppTheme.spacingXS,
+          ),
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? const LinearGradient(
+                    colors: AppTheme.primaryGradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : AppTheme.textSecondary,
+              size: 26,
+            ),
+          ),
         ),
       ),
     );
   }
 }
-

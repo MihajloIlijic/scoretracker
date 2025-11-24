@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/championship_viewmodel.dart';
 import '../models/championship.dart';
+import '../theme/app_theme.dart';
 import 'championship_detail_view.dart';
 import '../widgets/add_championship_dialog.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
+import '../widgets/championship_card.dart';
 
 class ChampionshipListView extends StatelessWidget {
   const ChampionshipListView({super.key});
@@ -13,76 +17,38 @@ class ChampionshipListView extends StatelessWidget {
     return Consumer<ChampionshipViewModel>(
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
         }
 
         if (viewModel.errorMessage != null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  viewModel.errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => viewModel.loadChampionships(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+          return ErrorState(
+            message: viewModel.errorMessage!,
+            onRetry: () => viewModel.loadChampionships(),
           );
         }
 
         if (viewModel.championships.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.emoji_events,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'No championships yet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Create a championship to organize players and matches!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddDialog(context, viewModel),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Championship'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
+          return EmptyState(
+            icon: Icons.emoji_events,
+            title: 'No championships yet',
+            subtitle: 'Create a championship to organize players and matches!',
+            actionLabel: 'Create Championship',
+            onAction: () => _showAddDialog(context, viewModel),
           );
         }
 
         return Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppTheme.spacingM),
               child: ElevatedButton.icon(
                 onPressed: () => _showAddDialog(context, viewModel),
                 icon: const Icon(Icons.add),
                 label: const Text('Create New Championship'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  minimumSize: const Size(double.infinity, 48),
+                  minimumSize: const Size(double.infinity, 56),
                 ),
               ),
             ),
@@ -90,39 +56,21 @@ class ChampionshipListView extends StatelessWidget {
               child: RefreshIndicator(
                 onRefresh: () => viewModel.loadChampionships(),
                 child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingS),
                   itemCount: viewModel.championships.length,
                   itemBuilder: (context, index) {
                     final championship = viewModel.championships[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.emoji_events),
-                        ),
-                        title: Text(
-                          championship.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: championship.description != null && championship.description!.isNotEmpty
-                            ? Text(championship.description!)
-                            : const Text('No description'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteChampionship(context, viewModel, championship),
-                          tooltip: 'Delete',
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChampionshipDetailView(championship: championship),
-                            ),
-                          ).then((_) => viewModel.loadChampionships());
-                        },
-                      ),
+                    return ChampionshipCard(
+                      championship: championship,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChampionshipDetailView(championship: championship),
+                          ),
+                        ).then((_) => viewModel.loadChampionships());
+                      },
+                      onDelete: () => _deleteChampionship(context, viewModel, championship),
                     );
                   },
                 ),
