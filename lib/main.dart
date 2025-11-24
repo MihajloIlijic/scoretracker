@@ -1705,11 +1705,6 @@ class _ChampionshipDetailPageState extends State<ChampionshipDetailPage> {
                           ),
                         ),
                         title: Text(player.name),
-                        subtitle: player.championships != null && player.championships!.length > 1
-                            ? Text(
-                                'Also in: ${player.championships!.where((c) => c.id != widget.championship.id).map((c) => c.name).join(", ")}',
-                              )
-                            : null,
                         trailing: IconButton(
                           icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
                           onPressed: () => _removePlayerFromChampionship(player),

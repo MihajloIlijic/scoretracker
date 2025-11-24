@@ -243,10 +243,11 @@ class ApiService {
         throw Exception('Player ID is required for update');
       }
       
+      // Always send championship_ids, even if empty
       final championshipIds = player.championships?.map((c) => c.id).where((id) => id != null).cast<int>().toList() ?? [];
       
       final requestBody = <String, dynamic>{
-        'championship_ids': championshipIds,
+        'championship_ids': championshipIds, // Always include, even if empty array
       };
       
       // Only include name if it's not empty

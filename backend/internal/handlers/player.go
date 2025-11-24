@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -135,6 +134,7 @@ func (h *PlayerHandler) UpdatePlayer(c *gin.Context) {
 		return
 	}
 
+
 	// Update name if provided
 	if request.Name != nil {
 		if err := h.DB.Model(&player).Update("name", *request.Name).Error; err != nil {
@@ -143,16 +143,17 @@ func (h *PlayerHandler) UpdatePlayer(c *gin.Context) {
 		}
 	}
 
-	// Update championships if provided
+	// Update championships - always process if field is present (even if empty array)
 	if request.ChampionshipIDs != nil {
 		// Use GORM's Table method for direct SQL operations
 		// First, delete all existing associations for this player
-		if err := h.DB.Table("player_championships").Where("player_id = ?", player.ID).Delete(nil).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear player championships: " + err.Error()})
+		result := h.DB.Table("player_championships").Where("player_id = ?", player.ID).Delete(nil)
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear player championships: " + result.Error.Error()})
 			return
 		}
 		
-		// Then, insert the new associations
+		// Then, insert the new associations (if any)
 		if len(request.ChampionshipIDs) > 0 {
 			// Verify all championships exist
 			var count int64
