@@ -1,0 +1,40 @@
+services:
+  # PostgreSQL Database
+  - type: pspg
+    name: scoretracker-db
+    plan: free
+    databaseName: scoretracker_db
+    user: scoretracker
+
+  # Backend API
+  - type: web
+    name: scoretracker-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: API_PORT
+        value: 8080
+      - key: DB_HOST
+        fromDatabase:
+          name: scoretracker-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: scoretracker-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: scoretracker-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: scoretracker-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: scoretracker-db
+          property: database
+    healthCheckPath: /api/health
+

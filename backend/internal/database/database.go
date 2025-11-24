@@ -18,8 +18,18 @@ func Connect() (*gorm.DB, error) {
 	dbPassword := getEnv("DB_PASSWORD", "scoretracker_pass")
 	dbName := getEnv("DB_NAME", "scoretracker_db")
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPassword, dbName)
+	// Use sslmode=require for production (Render), disable for local
+	sslMode := getEnv("DB_SSLMODE", "disable")
+	if sslMode == "" {
+		// Auto-detect: if not localhost, use require
+		if dbHost != "localhost" && dbHost != "127.0.0.1" {
+			sslMode = "require"
+		} else {
+			sslMode = "disable"
+		}
+	}
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		dbHost, dbPort, dbUser, dbPassword, dbName, sslMode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
