@@ -16,7 +16,7 @@ RUN chown -R flutter:flutter /app
 USER flutter
 
 # Fix Flutter repo ownership warning inside container
-RUN git config --global --add safe.directory /sdks/flutter
+RUN mkdir -p /home/flutter && touch /home/flutter/.gitconfig && git config --global --add safe.directory /sdks/flutter
 
 # Copy pubspec files
 COPY --chown=flutter:flutter pubspec.yaml pubspec.lock ./
