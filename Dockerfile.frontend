@@ -12,11 +12,11 @@ WORKDIR /app
 # Change ownership to flutter user
 RUN chown -R flutter:flutter /app
 
+# Fix Flutter repo ownership warning before switching user
+RUN mkdir -p /home/flutter && touch /home/flutter/.gitconfig && git config --global --add safe.directory /sdks/flutter
+
 # Switch to non-root user
 USER flutter
-
-# Fix Flutter repo ownership warning inside container
-RUN mkdir -p /home/flutter && touch /home/flutter/.gitconfig && git config --global --add safe.directory /sdks/flutter
 
 # Copy pubspec files
 COPY --chown=flutter:flutter pubspec.yaml pubspec.lock ./
